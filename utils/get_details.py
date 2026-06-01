@@ -1,16 +1,17 @@
 import json
 import os
-
+from dotenv import load_dotenv
+load_dotenv()
 
 def _get_gemini_key():
     try:
         import streamlit as st
-        key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         if not key:
-            st.error("❌ GOOGLE_API_KEY not found. Add it in App Settings → Secrets.")
+            st.error("GOOGLE_API_KEY not found. Add it in App Settings → Secrets.")
         return key
     except Exception:
-        return os.getenv("GOOGLE_API_KEY")
+        return os.getenv("GEMINI_API_KEY")
 
 
 def _gemini_generate(prompt: str, system: str) -> str:

@@ -20,7 +20,7 @@ def head_formatting(text, *args, font="Sora", font_size="3rem", letter_spacing="
     google_font_url = resolved_font.replace(" ", "+")
 
     return f"""
-    <link href="https://fonts.googleapis.com/css2?family={google_font_url}:wght@{weight}&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton+SC&family=Arbutus&family=Bebas+Neue&family=Dancing+Script:wght@400..700&family=Fontdiner+Swanky&family=Girassol&family=Give+You+Glory&family=Goldman:wght@400;700&family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&family=Leckerli+One&family=Nosifer&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Rajdhani:wght@300;400;500;600;700&family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Rubik+Vinyl&family=Sour+Gummy:ital,wght@0,100..900;1,100..900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Uncial+Antiqua&family=Zen+Dots&display=swap" rel="stylesheet">
     <h1 style="
         text-align: center;
         font-family: '{resolved_font}', sans-serif;
@@ -37,14 +37,15 @@ def head_formatting(text, *args, font="Sora", font_size="3rem", letter_spacing="
     ">{text}</h1>
 """
 
-def sub_head_formatting(text:str,color,font='Inter',font_weight='700'):
+def sub_head_formatting(text:str,color,font='Hanken Grotesk',font_weight='500'):
     return f"""
     <p style="
         text-align: center;
         font-family:{font}, sans-serif;
         color: {color};
-        font-size: 1.5rem;
+        font-size: 0.8rem;
         font-weight: {font_weight};
-        letter-spacing: 0.3px;
+        letter-spacing: -0.5px;
+        margin: -50px
     ">{text}</p>
 """

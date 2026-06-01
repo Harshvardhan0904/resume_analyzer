@@ -20,7 +20,7 @@ for idx, job in enumerate(job_res.jobs):
     with cols[idx]:
         st.markdown(f"""
             <div style="
-                border: 1px solid #818080;
+                border: 1px dashed #818080;
                 border-radius: 10px;
                 padding: 12px;
                 height: 200px;
@@ -57,3 +57,16 @@ questions = st.session_state['questions']
 st.write(questions)
 st.divider()
 st.subheader("ALL THE BEST 👍",text_alignment="center")
+st.divider()
+col_1, col_2, col_3 = st.columns(3)
+with col_1:
+    with st.container(border=True):
+        st.page_link("Home.py", label="Home", icon="🏚️")
+with col_2:
+    with st.container(border=True):
+        st.page_link("pages/1_Resume_Parser.py", label="Resume Parser", icon="📄")
+with col_3:
+    with st.container(border=True):
+        st.page_link("pages/2_ATS_Score.py", label="ATS Score", icon="🎯")
+
+st.divider()

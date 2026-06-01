@@ -7,14 +7,15 @@ from utils.get_details import extract_resume_features
 # ── Header ─────────────────────────────────────────────────
 st.markdown(head_formatting(
     "Resume Parser",
-    "#B55100", "#CA5B00", "#FF9437",
-    font="Inter",
-    font_size="3.5rem",
+    "rgb(91, 255, 109)", "rgb(0, 202, 183)", "rgb(6, 78, 248)",
+    font="Bebas Neue",
+    font_size="4.5rem",
     weight="800",
     letter_spacing="-1px"
 ), unsafe_allow_html=True)
 
-st.markdown("<p style='font-size:16px; color:gray;'>Upload your resume and let AI extract key information instantly.</p>", unsafe_allow_html=True)
+st.markdown(sub_head_formatting(text='Transform your resume into actionable career insights. Upload your resume and let AI analyze your profile, calculate ATS compatibility, and recommend your next opportunities',
+                                color = "rgb(136, 136, 136)"), unsafe_allow_html=True)
 st.divider()
 
 # ── Feature Cards ──────────────────────────────────────────
@@ -106,3 +107,16 @@ if res.get("certifications"):
 if res.get("projects"):
     st.markdown("### 🚀 Projects")
     st.dataframe(pd.DataFrame(res.get("projects", [])))
+
+st.divider()
+# Feature cards
+col_1, col_2, col_3 = st.columns(3)
+with col_1:
+    with st.container(border=True):
+        st.page_link("Home.py", label="Home", icon="🏚️")
+with col_2:
+    with st.container(border=True):
+        st.page_link("pages/2_ATS_Score.py", label="ATS Score", icon="🎯")
+with col_3:
+    with st.container(border=True):
+        st.page_link("pages/3_Job_Postings.py", label="Job Postings", icon="💼")
