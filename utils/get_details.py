@@ -1,34 +1,26 @@
 import json
 import os
 
-# ── API clients ────────────────────────────────────────────────────────────────
-# Load key: works both locally (st.secrets / env) and on Streamlit Cloud
+
 def _get_gemini_key():
     try:
         import streamlit as st
-        return st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+        key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if not key:
+            st.error("❌ GOOGLE_API_KEY not found. Add it in App Settings → Secrets.")
+        return key
     except Exception:
-        return os.getenv("GEMINI_API_KEY")
-
-
-def _gemini_client():
-    from google import genai
-    return genai.Client(api_key=_get_gemini_key())
-
-
+        return os.getenv("GOOGLE_API_KEY")
 
 
 def _gemini_generate(prompt: str, system: str) -> str:
-    """
-    Correct way to pass a system instruction in the google-genai SDK.
-    `contents` must only have role='user' / role='model'.
-    System prompt goes in generate_content_config.
-    """
+    from google import genai
     from google.genai import types
-    client = _gemini_client()
+
+    client = genai.Client(api_key=_get_gemini_key())
     response = client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=prompt,                          # plain string → role=user
+        contents=prompt,
         config=types.GenerateContentConfig(
             system_instruction=system,
             temperature=0.1,
@@ -37,17 +29,19 @@ def _gemini_generate(prompt: str, system: str) -> str:
     return response.text
 
 
-def _generate(prompt: str, system: str, backend: str,) -> str:
-    """
-    Unified generate function.
-    backend: "gemini" | "ollama"
-    """
-    return _gemini_generate(prompt, system=system)
+def _parse_json(raw: str) -> dict:
+    """Strip markdown fences if model adds them, then parse JSON."""
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+    return json.loads(raw)
 
 
 # ── Task 1: Extract Resume Features ───────────────────────────────────────────
-def extract_resume_features(resume_text: str,
-                             backend: str = "gemini") -> dict:
+def extract_resume_features(resume_text: str) -> dict:
 
     system = "You are a resume parser. Output only raw JSON. No markdown. No explanation. No code fences."
 
@@ -96,24 +90,12 @@ Resume:
 {resume_text}
 """
 
-    raw = _generate(prompt, system, backend)
-
-    # Strip accidental markdown fences if the model adds them anyway
-    raw = raw.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
-
-    return json.loads(raw)
+    raw = _gemini_generate(prompt, system)
+    return _parse_json(raw)
 
 
 # ── Task 2: Calculate ATS Score ───────────────────────────────────────────────
-def calculate_ats(resume_text: str, job_desc: str,
-                  backend: str = "gemini",
-                  ollama_url: str = "http://localhost:11434",
-                  ollama_model: str = "llama3") -> dict:
+def calculate_ats(resume_text: str, job_desc: str) -> dict:
 
     system = "You are an ATS calculator. Output only raw JSON. No markdown. No explanation. No code fences."
 
@@ -174,13 +156,5 @@ Job Description:
 {job_desc}
 """
 
-    raw = _generate(prompt, system, backend, ollama_url, ollama_model)
-
-    raw = raw.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
-
-    return json.loads(raw)
+    raw = _gemini_generate(prompt, system)
+    return _parse_json(raw)
