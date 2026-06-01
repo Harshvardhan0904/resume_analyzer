@@ -6,9 +6,9 @@ import os
 def _get_gemini_key():
     try:
         import streamlit as st
-        return st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        return st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
     except Exception:
-        return os.getenv("GOOGLE_API_KEY")
+        return os.getenv("GEMINI_API_KEY")
 
 
 def _gemini_client():
@@ -37,9 +37,7 @@ def _gemini_generate(prompt: str, system: str) -> str:
     return response.text
 
 
-def _generate(prompt: str, system: str, backend: str,
-              ollama_url: str = "http://localhost:11434",
-              ollama_model: str = "llama3") -> str:
+def _generate(prompt: str, system: str, backend: str,) -> str:
     """
     Unified generate function.
     backend: "gemini" | "ollama"
@@ -49,9 +47,7 @@ def _generate(prompt: str, system: str, backend: str,
 
 # ── Task 1: Extract Resume Features ───────────────────────────────────────────
 def extract_resume_features(resume_text: str,
-                             backend: str = "gemini",
-                             ollama_url: str = "http://localhost:11434",
-                             ollama_model: str = "llama3") -> dict:
+                             backend: str = "gemini") -> dict:
 
     system = "You are a resume parser. Output only raw JSON. No markdown. No explanation. No code fences."
 
@@ -100,7 +96,7 @@ Resume:
 {resume_text}
 """
 
-    raw = _generate(prompt, system, backend, ollama_url, ollama_model)
+    raw = _generate(prompt, system, backend)
 
     # Strip accidental markdown fences if the model adds them anyway
     raw = raw.strip()
