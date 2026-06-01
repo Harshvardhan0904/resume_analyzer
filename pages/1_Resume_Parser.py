@@ -40,19 +40,26 @@ if not file:
     """, unsafe_allow_html=True)
     st.stop()
 
-# ── Parse ──────────────────────────────────────────────────
+if st.session_state.get("uploaded_filename") != file.name:
+    st.session_state["uploaded_filename"] = file.name
+    st.session_state.pop("resume_data", None)   # clear stale data
+
+
 with st.spinner("📖 Reading resume..."):
     text = read_resume(file)
-with st.spinner("🤖 Extracting features..."):
-    res = extract_resume_features(text)
 
-st.session_state["resume_data"] = res
+if "resume_data" not in st.session_state:
+    with st.spinner("🤖 Extracting features..."):
+        res = extract_resume_features(text)
+        st.session_state["resume_data"] = res
+
+res = st.session_state['resume_data']
+
 for key in ['job_data', 'ats_results', 'questions']:
     st.session_state.pop(key, None)
 
 st.success("✅ Resume parsed successfully!")
 
-# ── Metrics Row ────────────────────────────────────────────
 skills_count  = len(res.get("skills", []))
 exp_count     = len(res.get("experience", []))
 projects_count= len(res.get("projects", []))
@@ -66,12 +73,11 @@ m4.metric("📜 Certifications", certs_count)
 
 st.divider()
 
-# ── Basic Info ─────────────────────────────────────────────
+
 st.markdown("### 👤 Basic Info")
 basic = {k: res.get(k, "") for k in ["name", "email", "phone", "summary"]}
 st.table(pd.DataFrame(basic.items(), columns=["Field", "Value"]))
 
-# ── Skills ─────────────────────────────────────────────────
 st.markdown("### 🛠 Skills")
 skills = res.get("skills", [])
 if skills:
@@ -82,23 +88,21 @@ if skills:
     st.markdown(pills_html, unsafe_allow_html=True)
 st.divider()
 
-# ── Experience ─────────────────────────────────────────────
+
 st.markdown("### 💼 Experience")
 st.table(pd.DataFrame(res.get("experience", [])))
 st.divider()
 
-# ── Education ──────────────────────────────────────────────
 st.markdown("### 🎓 Education")
 st.table(pd.DataFrame(res.get("education", [])))
 st.divider()
 
-# ── Certifications ─────────────────────────────────────────
+
 if res.get("certifications"):
     st.markdown("### 📜 Certifications")
     st.table(pd.DataFrame(res.get("certifications", []), columns=["Certification"]))
     st.divider()
 
-# ── Projects ───────────────────────────────────────────────
 if res.get("projects"):
     st.markdown("### 🚀 Projects")
-    st.table(pd.DataFrame(res.get("projects", [])))
+    st.dataframe(pd.DataFrame(res.get("projects", [])))

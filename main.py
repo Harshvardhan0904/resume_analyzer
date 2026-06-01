@@ -5,7 +5,7 @@ st.set_page_config(page_title="ResumeIQ", page_icon="📄", layout="wide")
 # Main title
 st.markdown(head_formatting(
     "ResumeIQ",
-    "#17B517", "#38E638","#80EFCA",
+    "#FF7700", "#D69005","#FFCC00",
     font="Inter",
     font_size="3.5rem",
     weight="800",
@@ -14,19 +14,19 @@ st.markdown(head_formatting(
 
 # Subtitle — softer, smaller, not gradient
 st.markdown(sub_head_formatting(text="Your AI-powered career assistant",
-                                color="#17B517"), 
+                                color="#FFD500"), 
                                 unsafe_allow_html=True)
 
 st.divider()
 
 # Section label
 st.markdown(sub_head_formatting(text="Navigate using the sidebar to get started",
-                                color="#00FF99",
+                                color="#000000",
                                 font = "Montserrat",font_weight = '700'),
                                 unsafe_allow_html=True)
 
 # Feature cards
-col_1, col_2, col_3, col_4 = st.columns(4)
+col_1, col_2, col_3 = st.columns(3)
 with col_1:
     st.page_link("pages/1_Resume_Parser.py", label="Resume Parser", icon="📄")
 with col_2:

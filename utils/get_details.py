@@ -1,9 +1,60 @@
-import ollama
 import json
-from utils.read_resume import read_resume
+import os
 
-#task 1
-def extract_resume_features(resume_text):
+# ── API clients ────────────────────────────────────────────────────────────────
+# Load key: works both locally (st.secrets / env) and on Streamlit Cloud
+def _get_gemini_key():
+    try:
+        import streamlit as st
+        return st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+    except Exception:
+        return os.getenv("GEMINI_API_KEY")
+
+
+def _gemini_client():
+    from google import genai
+    return genai.Client(api_key=_get_gemini_key())
+
+
+
+
+def _gemini_generate(prompt: str, system: str) -> str:
+    """
+    Correct way to pass a system instruction in the google-genai SDK.
+    `contents` must only have role='user' / role='model'.
+    System prompt goes in generate_content_config.
+    """
+    from google.genai import types
+    client = _gemini_client()
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,                          # plain string → role=user
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            temperature=0.1,
+        ),
+    )
+    return response.text
+
+
+def _generate(prompt: str, system: str, backend: str,
+              ollama_url: str = "http://localhost:11434",
+              ollama_model: str = "llama3") -> str:
+    """
+    Unified generate function.
+    backend: "gemini" | "ollama"
+    """
+    return _gemini_generate(prompt, system=system)
+
+
+# ── Task 1: Extract Resume Features ───────────────────────────────────────────
+def extract_resume_features(resume_text: str,
+                             backend: str = "gemini",
+                             ollama_url: str = "http://localhost:11434",
+                             ollama_model: str = "llama3") -> dict:
+
+    system = "You are a resume parser. Output only raw JSON. No markdown. No explanation. No code fences."
+
     prompt = f"""You are a precise resume parser. Extract information from the resume below and return ONLY a valid JSON object with no markdown, no code blocks, no extra text before or after.
 
 Rules:
@@ -49,65 +100,58 @@ Resume:
 {resume_text}
 """
 
-    response = ollama.chat(
-        model="llama3.2",
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a resume parser. Output only raw JSON. No markdown. No explanation. No code fences."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+    raw = _generate(prompt, system, backend, ollama_url, ollama_model)
 
-    raw = response["message"]["content"].strip()
-
+    # Strip accidental markdown fences if the model adds them anyway
+    raw = raw.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
+        raw = raw.strip()
 
-    clean = raw[raw.find("{"):raw.rfind("}") + 1]
-    data = json.loads(clean)
-    return data
+    return json.loads(raw)
 
-#task 2 - Calculate ats score
-def calculate_ats(resume_text, job_desc):
-    prompt = f"""You are an expert ATS (Applicant Tracking System) evaluator. Your job is to score how well a resume matches a job description.
-BASIC RULE 
-    - Done match keyword by keyword match if the things are similar 
-    - For same word or skill they are same if they are in lower case or upper case dont mark them sprate
-    - Some skills are similar (ex : Power BI and Tablue are same since the both are used for visualization)
-    - Give suggestion for improvement like what things can be fixed in resume to make it more better for the Job description
+
+# ── Task 2: Calculate ATS Score ───────────────────────────────────────────────
+def calculate_ats(resume_text: str, job_desc: str,
+                  backend: str = "gemini",
+                  ollama_url: str = "http://localhost:11434",
+                  ollama_model: str = "llama3") -> dict:
+
+    system = "You are an ATS calculator. Output only raw JSON. No markdown. No explanation. No code fences."
+
+    prompt = f"""You are an expert ATS (Applicant Tracking System) evaluator. Score how well a resume matches a job description.
+
+BASIC RULES:
+- Do NOT do pure keyword matching — judge semantic similarity
+- Treat case-insensitive duplicates as the same (python == Python)
+- Similar tools count as equivalent (e.g. Power BI and Tableau are both visualization tools)
+- Give actionable suggestions for what the candidate can add/fix to improve their score
+
 STEP 1 — ANALYZE THE JOB DESCRIPTION:
-Extract the following from the job description:
 - Required skills (must-have)
 - Preferred skills (nice-to-have)
-- Minimum years of experience required (if not mentioned, assume  = fresher role)
+- Minimum years of experience (if not mentioned → assume fresher role)
 - Required qualifications / degrees
-- Key responsibilities (to match against experience)
+- Key responsibilities
 
-STEP 2 — ANALYZE THE RESUME IN THIS ORDER:
-1. Skills — match against required and preferred skills from JD
-2. Experience — match roles, responsibilities, and years of experience
+STEP 2 — ANALYZE THE RESUME:
+1. Skills — match against required + preferred skills from JD
+2. Experience — match roles, responsibilities, years
 3. Projects — check for relevant tech stack or domain overlap
 4. Education — check if qualification requirement is met
 
-STEP 3 — SCORING BREAKDOWN (total = 100):
-- Skills match         : 40 points  (required skills carry more weight than preferred)
-- Experience match     : 30 points  (years + relevance of past roles)
-- Projects relevance   : 20 points  (tech stack, domain, impact)
-- Education match      : 10 points  (degree, field of study)
+STEP 3 — SCORING (total = 100):
+- Skills match     : 40 pts (required > preferred in weight)
+- Experience match : 30 pts (years + relevance)
+- Projects         : 20 pts (tech stack, domain, impact)
+- Education        : 10 pts (degree, field of study)
 
-Deduct points for:
-- Skills that are in the Job description but not in resume uploded by the user
-- Experience gap (e.g. JD needs 3 years, candidate has 1) but if its for fresher and user has more then give point dont deduct
-- Unrelated domain or industry
+Deduct points for: missing required skills, experience gap, unrelated domain.
+Do NOT deduct if the role is fresher-level and candidate has 0 experience.
 
-STEP 4 — RETURN strict JSON only. No markdown. No explanation outside the JSON.
+STEP 4 — Return strict JSON only. No markdown. No extra text.
 
 {{
     "ats_score": <integer 0-100>,
@@ -134,27 +178,13 @@ Job Description:
 {job_desc}
 """
 
-    response = ollama.chat(
-        model="llama3.2",
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a ATS calculator. Output only raw JSON. No markdown. No explanation. No code fences."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+    raw = _generate(prompt, system, backend, ollama_url, ollama_model)
 
-    raw = response["message"]["content"].strip()
-
+    raw = raw.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
+        raw = raw.strip()
 
-    clean = raw[raw.find("{"):raw.rfind("}") + 1]
-    data = json.loads(clean)
-    return data
+    return json.loads(raw)
