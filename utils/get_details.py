@@ -6,9 +6,9 @@ import os
 def _get_gemini_key():
     try:
         import streamlit as st
-        return st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+        return st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
     except Exception:
-        return os.getenv("GEMINI_API_KEY")
+        return os.getenv("GOOGLE_API_KEY")
 
 
 def _gemini_client():
